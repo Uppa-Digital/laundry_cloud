@@ -1,0 +1,125 @@
+{
+ "actions": [],
+ "creation": "2026-09-04 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_geo",
+  "enforce_geofence",
+  "default_radius_meters",
+  "column_break_geo",
+  "block_checkin_out_of_range",
+  "section_break_face",
+  "enforce_face_match",
+  "face_match_threshold",
+  "column_break_face",
+  "block_checkin_on_face_mismatch",
+  "section_break_sync",
+  "sync_to_employee_checkin"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_geo",
+   "fieldtype": "Section Break",
+   "label": "Geolocation"
+  },
+  {
+   "default": "1",
+   "description": "Compare each check-in/check-out location against configured Office Locations.",
+   "fieldname": "enforce_geofence",
+   "fieldtype": "Check",
+   "label": "Enforce Geofencing"
+  },
+  {
+   "default": "150",
+   "fieldname": "default_radius_meters",
+   "fieldtype": "Int",
+   "label": "Default Allowed Radius (meters)"
+  },
+  {
+   "fieldname": "column_break_geo",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "If enabled, check-ins/check-outs made outside every configured geofence are rejected instead of just flagged.",
+   "fieldname": "block_checkin_out_of_range",
+   "fieldtype": "Check",
+   "label": "Block Check-in When Out of Range"
+  },
+  {
+   "fieldname": "section_break_face",
+   "fieldtype": "Section Break",
+   "label": "Facial Recognition"
+  },
+  {
+   "default": "1",
+   "fieldname": "enforce_face_match",
+   "fieldtype": "Check",
+   "label": "Enforce Face Match"
+  },
+  {
+   "default": "0.6",
+   "description": "Maximum Euclidean distance between captured and enrolled face descriptors to count as a match. Lower is stricter. face-api.js typically uses 0.6 as the default threshold.",
+   "fieldname": "face_match_threshold",
+   "fieldtype": "Float",
+   "label": "Face Match Threshold"
+  },
+  {
+   "fieldname": "column_break_face",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "If enabled, check-ins/check-outs that fail face verification (or have no enrolled profile) are rejected instead of just flagged.",
+   "fieldname": "block_checkin_on_face_mismatch",
+   "fieldtype": "Check",
+   "label": "Block Check-in on Face Mismatch"
+  },
+  {
+   "fieldname": "section_break_sync",
+   "fieldtype": "Section Break",
+   "label": "HR Integration"
+  },
+  {
+   "default": "1",
+   "description": "Best-effort create a matching record in the standard Employee Checkin doctype (from Frappe HR) so shift/attendance/payroll automation picks it up.",
+   "fieldname": "sync_to_employee_checkin",
+   "fieldtype": "Check",
+   "label": "Sync to Employee Checkin"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-09-04 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Attendance",
+ "name": "Attendance Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Attendance Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

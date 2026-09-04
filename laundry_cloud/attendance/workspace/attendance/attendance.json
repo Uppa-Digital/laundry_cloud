@@ -1,0 +1,70 @@
+{
+ "charts": [],
+ "content": "[{\"id\":\"attendance-header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Attendance</b></span>\",\"col\":12}},{\"id\":\"attendance-kiosk-shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Attendance Kiosk\",\"col\":3}},{\"id\":\"attendance-checkin-shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Attendance Checkin\",\"col\":3}},{\"id\":\"attendance-summary-shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Attendance Summary\",\"col\":3}},{\"id\":\"attendance-setup-header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Setup</b></span>\",\"col\":12}},{\"id\":\"attendance-office-location-shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Office Location\",\"col\":3}},{\"id\":\"attendance-face-profile-shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Employee Face Profile\",\"col\":3}},{\"id\":\"attendance-settings-shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Attendance Settings\",\"col\":3}}]",
+ "creation": "2026-09-04 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "octicon octicon-checklist",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "Attendance",
+ "links": [],
+ "modified": "2026-09-04 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Attendance",
+ "name": "Attendance",
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "restrict_to_domain": "",
+ "sequence_id": 1.0,
+ "shortcuts": [
+  {
+   "color": "Blue",
+   "doc_view": "",
+   "label": "Attendance Kiosk",
+   "link_to": "attendance-kiosk",
+   "type": "Page"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Attendance Checkin",
+   "link_to": "Attendance Checkin",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "",
+   "label": "Attendance Summary",
+   "link_to": "Attendance Summary",
+   "type": "Report"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Office Location",
+   "link_to": "Office Location",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Employee Face Profile",
+   "link_to": "Employee Face Profile",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "",
+   "label": "Attendance Settings",
+   "link_to": "Attendance Settings",
+   "type": "DocType"
+  }
+ ],
+ "title": "Attendance",
+ "type": "Workspace"
+}

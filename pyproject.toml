@@ -1,0 +1,19 @@
+[build-system]
+requires = ["flit_core >=3.4,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "laundry_cloud"
+authors = [
+    { name = "Laundry Cloud", email = "okhaweremike@gmail.com"}
+]
+description = "A comprehensive laundry management app built on Frappe Framework, including staff attendance monitoring with facial recognition and geolocation."
+requires-python = ">=3.10"
+readme = "README.md"
+dynamic = ["version"]
+dependencies = []
+
+[tool.bench.dev-dependencies]
+
+[tool.flit.module]
+name = "laundry_cloud"
