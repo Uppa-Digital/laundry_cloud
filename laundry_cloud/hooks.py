@@ -16,8 +16,12 @@ required_apps = ["hrms"]
 # ------------------
 # include js, css files in header of desk.html
 
-# app_include_css = "/assets/laundry_cloud/css/laundry_cloud.css"
-# app_include_js = "/assets/laundry_cloud/js/laundry_cloud.js"
+app_include_js = "/assets/laundry_cloud/js/face_capture.js"
+
+# Doctype JS
+# ----------
+
+doctype_js = {"Employee": "public/js/employee.js"}
 
 # Installation
 # ------------

@@ -14,9 +14,8 @@ check in/out:
    against every enrolled profile) — no per-person login needed each time.
 2. **Personal self-service page** (desk → *My Attendance*) — an individual
    employee, logged in as themselves, checks themselves in/out (1:1 face
-   verification against their own profile). Also where face enrollment
-   happens, since enrollment has to be tied to a real, individually
-   authenticated identity.
+   verification against their own profile). Optional — most staff won't
+   need this if they only ever use the shared kiosk.
 
 Both flows share the same verification pipeline:
 
@@ -57,6 +56,37 @@ the employee" — anyone can walk up to it. So instead:
   personal self-service page, under a real login, so the reference data
   used for 1:N identification always traces back to a verified identity.
 
+### How HR enrolls an employee
+
+This is the important part, since it's how everyone actually gets onto the
+platform. **An employee does not need a personal Frappe login at all** —
+most laundry staff won't have one, and don't need one, if they'll only ever
+use the shared kiosk. HR enrolls them directly, in person:
+
+1. HR (any `System Manager` / `Attendance Manager` / `HR Manager`) opens
+   desk → **Attendance workspace → Enroll Employee Face** (or, from any
+   `Employee` record, the **Enroll Attendance Face** button on the form).
+2. The page shows a live camera preview, an Employee picker, and a running
+   checklist of every active employee who **hasn't** been enrolled yet.
+3. Call the employee over (or open the page on a laptop/tablet at their
+   desk), pick their name — or just click them in the checklist — have
+   them look at the camera, and click **Capture & Save**.
+4. The page clears itself and is immediately ready for the next employee.
+   The checklist shrinks as people get enrolled, so HR can see progress at
+   a glance during onboarding or a "photo day" for existing staff.
+
+That single enrollment is then used both ways: it's the reference an
+employee is matched against on the shared kiosk (1:N), and — if they ever
+do get a personal login — for their own self-service check-in (1:1).
+
+Re-enrolling (e.g. after a haircut/beard change causes mismatches, or a new
+hire) works the same way — capturing again simply replaces the stored
+reference for that employee.
+
+An employee can alternatively enroll **themselves** from desk → *My
+Attendance* → **Enroll My Face**, if they do have a personal login — this
+just isn't the primary path, since most staff won't have one.
+
 ### DocTypes
 
 | DocType | Purpose |
@@ -73,8 +103,10 @@ the employee" — anyone can walk up to it. So instead:
 `laundry_cloud.attendance.api` (personal, self-authenticated):
 - `get_kiosk_context` — the logged-in user's `Employee`, enrollment status, last log.
 - `enroll_face(descriptor, image, employee=None)` — store/replace a face
-  descriptor. Self-enrollment always allowed; enrolling someone else needs
-  a manager role.
+  descriptor. Self-enrollment always allowed; passing `employee` (HR
+  enrolling someone else) requires a manager role.
+- `get_unenrolled_employees()` — active employees with no face profile yet
+  (manager-only); powers the checklist on **Enroll Employee Face**.
 - `mark_attendance(latitude, longitude, log_type, descriptor, image)` — 1:1
   verified self check-in/out.
 
@@ -99,8 +131,9 @@ Then:
 
 1. Create at least one **Office Location** and review **Attendance
    Settings** (enforcement toggles, face match threshold, geofence radius).
-2. Have each employee open desk → **My Attendance** and click **Enroll My
-   Face** once, before anyone tries to check in via the shared kiosk.
+2. Enroll staff faces via desk → **Enroll Employee Face** (see *How HR
+   enrolls an employee* above) — do this before anyone tries the shared
+   kiosk, since an unenrolled face is always rejected.
 3. To set up a shared kiosk device:
    - Create a `User` with **User Type = Website User** and only the
      **Attendance Kiosk** role (no other roles — this account must never

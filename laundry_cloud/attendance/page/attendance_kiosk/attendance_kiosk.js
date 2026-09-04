@@ -1,7 +1,3 @@
-const FACE_API_SRC = "https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js";
-const FACE_API_MODEL_URL = "https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights";
-const FACE_DETECT_OPTIONS_SCORE_THRESHOLD = 0.5;
-
 frappe.pages["attendance-kiosk"].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({
 		parent: wrapper,
@@ -14,7 +10,13 @@ frappe.pages["attendance-kiosk"].on_page_load = function (wrapper) {
 
 // This is the personal, self-service page: you sign in as yourself and
 // check yourself in/out (1:1 face verification against your own enrolled
-// profile). It's also where you enroll your face in the first place.
+// profile). It's also where you can enroll your own face, if you have a
+// personal login.
+//
+// Most staff won't have (or need) a personal login at all — HR enrolls
+// them instead from the "Enroll Employee Face" page (see the Employee
+// form's "Enroll Attendance Face" button, or the Attendance workspace).
+//
 // For a shared device mounted at a physical location where any staff
 // member can walk up and check in/out (1:N face identification, no
 // per-person login), see the installable kiosk app at /kiosk.
@@ -23,7 +25,6 @@ class AttendanceKiosk {
 	constructor(page) {
 		this.page = page;
 		this.stream = null;
-		this.models_loaded = false;
 		this.context = null;
 
 		this.render();
@@ -38,7 +39,6 @@ class AttendanceKiosk {
 						<div class="camera-box text-center">
 							<video id="ak-video" autoplay muted playsinline
 								style="width:100%; max-width:480px; border-radius:8px; background:#111;"></video>
-							<canvas id="ak-canvas" style="display:none;"></canvas>
 						</div>
 					</div>
 					<div class="col-md-6">
@@ -68,7 +68,6 @@ class AttendanceKiosk {
 		`);
 
 		this.$video = this.page.main.find("#ak-video");
-		this.$canvas = this.page.main.find("#ak-canvas");
 		this.$employee_name = this.page.main.find("#ak-employee-name");
 		this.$status_camera = this.page.main.find("#ak-status-camera");
 		this.$status_model = this.page.main.find("#ak-status-model");
@@ -115,8 +114,8 @@ class AttendanceKiosk {
 	}
 
 	start_camera() {
-		return navigator.mediaDevices
-			.getUserMedia({ video: { facingMode: "user" }, audio: false })
+		return laundry_cloud.face_capture
+			.startCamera()
 			.then((stream) => {
 				this.stream = stream;
 				this.$video.get(0).srcObject = stream;
@@ -128,16 +127,9 @@ class AttendanceKiosk {
 	}
 
 	load_face_api() {
-		return this.load_script(FACE_API_SRC)
-			.then(() =>
-				Promise.all([
-					faceapi.nets.tinyFaceDetector.loadFromUri(FACE_API_MODEL_URL),
-					faceapi.nets.faceLandmark68Net.loadFromUri(FACE_API_MODEL_URL),
-					faceapi.nets.faceRecognitionNet.loadFromUri(FACE_API_MODEL_URL),
-				])
-			)
+		return laundry_cloud.face_capture
+			.loadModels()
 			.then(() => {
-				this.models_loaded = true;
 				this.$status_model.text("ready");
 			})
 			.catch((err) => {
@@ -145,22 +137,8 @@ class AttendanceKiosk {
 			});
 	}
 
-	load_script(src) {
-		return new Promise((resolve, reject) => {
-			if (document.querySelector(`script[src="${src}"]`)) {
-				resolve();
-				return;
-			}
-			const script = document.createElement("script");
-			script.src = src;
-			script.onload = resolve;
-			script.onerror = () => reject(new Error("could not load " + src));
-			document.head.appendChild(script);
-		});
-	}
-
 	maybe_enable_button() {
-		if (this.stream && this.models_loaded) {
+		if (this.stream && laundry_cloud.face_capture.isReady()) {
 			this.$btn_in.prop("disabled", false);
 			this.$btn_out.prop("disabled", false);
 		}
@@ -190,25 +168,6 @@ class AttendanceKiosk {
 		});
 	}
 
-	async detect_face() {
-		const options = new faceapi.TinyFaceDetectorOptions({
-			scoreThreshold: FACE_DETECT_OPTIONS_SCORE_THRESHOLD,
-		});
-		return await faceapi
-			.detectSingleFace(this.$video.get(0), options)
-			.withFaceLandmarks()
-			.withFaceDescriptor();
-	}
-
-	capture_snapshot() {
-		const video = this.$video.get(0);
-		const canvas = this.$canvas.get(0);
-		canvas.width = video.videoWidth;
-		canvas.height = video.videoHeight;
-		canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
-		return canvas.toDataURL("image/jpeg", 0.85);
-	}
-
 	async handle_mark_attendance(log_type) {
 		this.$btn_in.prop("disabled", true);
 		this.$btn_out.prop("disabled", true);
@@ -216,7 +175,7 @@ class AttendanceKiosk {
 
 		try {
 			frappe.show_alert({ message: __("Detecting face..."), indicator: "blue" });
-			const detection = await this.detect_face();
+			const detection = await laundry_cloud.face_capture.detectFace(this.$video.get(0));
 			if (!detection) {
 				frappe.msgprint({
 					title: __("No Face Detected"),
@@ -226,7 +185,7 @@ class AttendanceKiosk {
 				return;
 			}
 
-			const image = this.capture_snapshot();
+			const image = laundry_cloud.face_capture.captureSnapshot(this.$video.get(0));
 			const coords = await this.get_position();
 
 			frappe.call({
@@ -278,7 +237,7 @@ class AttendanceKiosk {
 	}
 
 	open_enroll_dialog() {
-		if (!this.stream || !this.models_loaded) {
+		if (!this.stream || !laundry_cloud.face_capture.isReady()) {
 			frappe.msgprint(__("Camera and face recognition must be ready before enrolling."));
 			return;
 		}
@@ -298,12 +257,12 @@ class AttendanceKiosk {
 			primary_action: async () => {
 				const $btn = dialog.get_primary_btn().prop("disabled", true).text(__("Detecting..."));
 				try {
-					const detection = await this.detect_face();
+					const detection = await laundry_cloud.face_capture.detectFace(this.$video.get(0));
 					if (!detection) {
 						frappe.show_alert({ message: __("No face detected, try again"), indicator: "orange" });
 						return;
 					}
-					const image = this.capture_snapshot();
+					const image = laundry_cloud.face_capture.captureSnapshot(this.$video.get(0));
 					frappe.call({
 						method: "laundry_cloud.attendance.api.enroll_face",
 						args: {

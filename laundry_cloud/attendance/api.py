@@ -110,6 +110,31 @@ def enroll_face(descriptor, image, employee=None):
 	return {"status": "ok", "employee": target_employee}
 
 
+@frappe.whitelist()
+def get_unenrolled_employees():
+	"""Active employees who don't have a face profile yet — the checklist
+	HR works through on the "Enroll Employee Face" page. Manager-only:
+	this is a full staff roster, not something a kiosk/self-service
+	session should be able to pull."""
+	if not has_manager_role():
+		frappe.throw(_("Not permitted."), frappe.PermissionError)
+
+	enrolled = frappe.get_all(
+		"Employee Face Profile", filters={"is_active": 1}, pluck="employee"
+	)
+	filters = {"status": "Active"}
+	if enrolled:
+		filters["name"] = ["not in", enrolled]
+
+	return frappe.get_all(
+		"Employee",
+		filters=filters,
+		fields=["name", "employee_name", "department", "designation"],
+		order_by="employee_name asc",
+		limit_page_length=500,
+	)
+
+
 def build_duplicate_remark(employee, log_type, time):
 	last_log = get_last_log(employee, before=time)
 	if not last_log:
