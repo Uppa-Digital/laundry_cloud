@@ -13,6 +13,12 @@ frappe.pages["enroll-employee-face"].on_page_load = function (wrapper) {
 // their face, save. No personal login is required for the employee —
 // this is the primary way most staff get enrolled, since they'll only
 // ever use the shared kiosk (/kiosk) to check in/out afterwards.
+//
+// Three ways to get a face in: the live camera, uploading a photo, or
+// reusing the employee's existing photo on file. face-api.js detects a
+// face and computes the same descriptor from any of them — there's no
+// "liveness" check on the camera path that a photo would bypass, so this
+// isn't a security tradeoff, just a convenience one.
 
 class EnrollEmployeeFace {
 	constructor(page) {
@@ -40,9 +46,20 @@ class EnrollEmployeeFace {
 					</div>
 					<div class="col-md-7">
 						<div id="eef-employee-field"></div>
-						<button class="btn btn-primary" id="eef-btn-capture" disabled style="margin-top: 14px;">
-							Capture &amp; Save Face
-						</button>
+
+						<div style="margin-top: 14px;">
+							<button class="btn btn-primary" id="eef-btn-capture" disabled>
+								Capture from Camera
+							</button>
+							<button class="btn btn-default" id="eef-btn-upload" style="margin-left: 8px;">
+								Upload Photo
+							</button>
+							<button class="btn btn-default" id="eef-btn-existing" style="margin-left: 8px;">
+								Use Existing Employee Photo
+							</button>
+							<input type="file" id="eef-file-input" accept="image/*" style="display:none;">
+						</div>
+
 						<div id="eef-result" style="margin-top: 16px;"></div>
 
 						<hr>
@@ -61,6 +78,9 @@ class EnrollEmployeeFace {
 		this.$status_camera = this.page.main.find("#eef-status-camera");
 		this.$status_model = this.page.main.find("#eef-status-model");
 		this.$btn_capture = this.page.main.find("#eef-btn-capture");
+		this.$btn_upload = this.page.main.find("#eef-btn-upload");
+		this.$btn_existing = this.page.main.find("#eef-btn-existing");
+		this.$file_input = this.page.main.find("#eef-file-input");
 		this.$result = this.page.main.find("#eef-result");
 		this.$unenrolled_list = this.page.main.find("#eef-unenrolled-list");
 		this.$remaining_count = this.page.main.find("#eef-remaining-count");
@@ -79,7 +99,10 @@ class EnrollEmployeeFace {
 		});
 		this.employee_field.refresh();
 
-		this.$btn_capture.on("click", () => this.handle_capture());
+		this.$btn_capture.on("click", () => this.handle_capture_from_camera());
+		this.$btn_upload.on("click", () => this.$file_input.trigger("click"));
+		this.$file_input.on("change", (e) => this.handle_file_selected(e.target.files[0]));
+		this.$btn_existing.on("click", () => this.handle_use_existing_photo());
 	}
 
 	async init() {
@@ -168,29 +191,97 @@ class EnrollEmployeeFace {
 		});
 	}
 
-	async handle_capture() {
+	get_selected_employee() {
 		const employee = this.employee_field.get_value();
 		if (!employee) {
 			frappe.msgprint(__("Select an employee first."));
+			return null;
+		}
+		return employee;
+	}
+
+	async handle_capture_from_camera() {
+		const employee = this.get_selected_employee();
+		if (!employee) return;
+
+		const video = this.$video.get(0);
+		await this.enroll_from_media(employee, video, () =>
+			laundry_cloud.face_capture.captureSnapshot(video)
+		);
+	}
+
+	async handle_file_selected(file) {
+		this.$file_input.val("");
+		if (!file) return;
+
+		const employee = this.get_selected_employee();
+		if (!employee) return;
+
+		if (!file.type.startsWith("image/")) {
+			frappe.msgprint(__("Please choose an image file."));
 			return;
 		}
 
-		this.$btn_capture.prop("disabled", true);
+		try {
+			const dataUrl = await laundry_cloud.face_capture.readFileAsDataUrl(file);
+			const img = await laundry_cloud.face_capture.loadImage(dataUrl);
+			await this.enroll_from_media(employee, img, () => dataUrl);
+		} catch (err) {
+			frappe.msgprint({
+				title: __("Could not use that photo"),
+				message: err.message || String(err),
+				indicator: "red",
+			});
+		}
+	}
+
+	async handle_use_existing_photo() {
+		const employee = this.get_selected_employee();
+		if (!employee) return;
+
+		this.$btn_existing.prop("disabled", true);
+		try {
+			const existingUrl = await frappe.db.get_value("Employee", employee, "image");
+			const url = existingUrl && existingUrl.message && existingUrl.message.image;
+			if (!url) {
+				frappe.msgprint(__("{0} doesn't have a photo on file yet.", [employee]));
+				return;
+			}
+			const img = await laundry_cloud.face_capture.loadImage(url);
+			await this.enroll_from_media(employee, img, () =>
+				laundry_cloud.face_capture.captureSnapshot(img)
+			);
+		} catch (err) {
+			frappe.msgprint({
+				title: __("Could not use their existing photo"),
+				message: err.message || String(err),
+				indicator: "red",
+			});
+		} finally {
+			this.$btn_existing.prop("disabled", false);
+		}
+	}
+
+	// mediaEl is whatever detectFace() should run on (a <video> or <img>);
+	// get_image_data_url is called only once a face is confirmed, so we
+	// don't re-encode/discard images for nothing.
+	async enroll_from_media(employee, mediaEl, get_image_data_url) {
+		this.set_buttons_disabled(true);
 		this.$result.empty();
 
 		try {
 			frappe.show_alert({ message: __("Detecting face..."), indicator: "blue" });
-			const detection = await laundry_cloud.face_capture.detectFace(this.$video.get(0));
+			const detection = await laundry_cloud.face_capture.detectFace(mediaEl);
 			if (!detection) {
 				frappe.msgprint({
 					title: __("No Face Detected"),
-					message: __("Ask them to look directly at the camera and try again."),
+					message: __("Couldn't find a single, clear face there. Try again, or a different photo."),
 					indicator: "orange",
 				});
 				return;
 			}
 
-			const image = laundry_cloud.face_capture.captureSnapshot(this.$video.get(0));
+			const image = get_image_data_url();
 
 			await frappe.call({
 				method: "laundry_cloud.attendance.api.enroll_face",
@@ -218,7 +309,13 @@ class EnrollEmployeeFace {
 				indicator: "red",
 			});
 		} finally {
-			this.$btn_capture.prop("disabled", false);
+			this.set_buttons_disabled(false);
 		}
+	}
+
+	set_buttons_disabled(disabled) {
+		this.$btn_capture.prop("disabled", disabled || !(this.stream && laundry_cloud.face_capture.isReady()));
+		this.$btn_upload.prop("disabled", disabled);
+		this.$btn_existing.prop("disabled", disabled);
 	}
 }

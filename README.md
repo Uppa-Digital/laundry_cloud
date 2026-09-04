@@ -68,9 +68,17 @@ use the shared kiosk. HR enrolls them directly, in person:
    `Employee` record, the **Enroll Attendance Face** button on the form).
 2. The page shows a live camera preview, an Employee picker, and a running
    checklist of every active employee who **hasn't** been enrolled yet.
-3. Call the employee over (or open the page on a laptop/tablet at their
-   desk), pick their name — or just click them in the checklist — have
-   them look at the camera, and click **Capture & Save**.
+3. Pick their name — or just click them in the checklist — then get a face
+   in one of three ways:
+   - **Capture from Camera** — call the employee over and take their photo.
+   - **Upload Photo** — pick an existing image file (e.g. an ID photo).
+   - **Use Existing Employee Photo** — one click, if their `Employee`
+     record already has a photo on file.
+   All three run the same face-detection pipeline and produce an
+   identical reference — there's no camera-only requirement, since
+   nothing about this app does "liveness" detection at enrollment or
+   check-in either way; a photo is just as valid a reference as a live
+   frame.
 4. The page clears itself and is immediately ready for the next employee.
    The checklist shrinks as people get enrolled, so HR can see progress at
    a glance during onboarding or a "photo day" for existing staff.

@@ -45,21 +45,30 @@ frappe.provide("laundry_cloud.face_capture");
 		return modelsLoaded;
 	};
 
-	ns.detectFace = async function (videoEl, scoreThreshold) {
+	// mediaEl can be a <video>, <img>, or <canvas> — face-api.js detects on
+	// any of them the same way, which is what makes still-photo enrollment
+	// (upload / an existing Employee photo) work identically to a live
+	// camera capture.
+	ns.detectFace = async function (mediaEl, scoreThreshold) {
 		const options = new faceapi.TinyFaceDetectorOptions({
 			scoreThreshold: scoreThreshold || 0.5,
 		});
 		return await faceapi
-			.detectSingleFace(videoEl, options)
+			.detectSingleFace(mediaEl, options)
 			.withFaceLandmarks()
 			.withFaceDescriptor();
 	};
 
-	ns.captureSnapshot = function (videoEl) {
+	// Re-encodes whatever's currently showing in a <video>/<img> element as
+	// a JPEG data URL, for both live camera frames and already-loaded
+	// still images.
+	ns.captureSnapshot = function (mediaEl) {
+		const width = mediaEl.videoWidth || mediaEl.naturalWidth || mediaEl.width;
+		const height = mediaEl.videoHeight || mediaEl.naturalHeight || mediaEl.height;
 		const canvas = document.createElement("canvas");
-		canvas.width = videoEl.videoWidth;
-		canvas.height = videoEl.videoHeight;
-		canvas.getContext("2d").drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+		canvas.width = width;
+		canvas.height = height;
+		canvas.getContext("2d").drawImage(mediaEl, 0, 0, width, height);
 		return canvas.toDataURL("image/jpeg", 0.85);
 	};
 
@@ -69,5 +78,28 @@ frappe.provide("laundry_cloud.face_capture");
 
 	ns.stopCamera = function (stream) {
 		if (stream) stream.getTracks().forEach((t) => t.stop());
+	};
+
+	// --- Still-photo helpers (upload / existing photo) --------------------
+
+	ns.readFileAsDataUrl = function (file) {
+		return new Promise((resolve, reject) => {
+			const reader = new FileReader();
+			reader.onload = () => resolve(reader.result);
+			reader.onerror = () => reject(new Error("Could not read that file."));
+			reader.readAsDataURL(file);
+		});
+	};
+
+	// Loads any URL (a data: URL from a file picker, or a same-origin file
+	// URL like an Employee's existing photo) into an <img> element ready
+	// for detectFace()/captureSnapshot().
+	ns.loadImage = function (src) {
+		return new Promise((resolve, reject) => {
+			const img = new Image();
+			img.onload = () => resolve(img);
+			img.onerror = () => reject(new Error("Could not load that image."));
+			img.src = src;
+		});
 	};
 })(laundry_cloud.face_capture);

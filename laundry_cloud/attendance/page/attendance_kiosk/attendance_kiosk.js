@@ -248,46 +248,83 @@ class AttendanceKiosk {
 				{
 					fieldtype: "HTML",
 					fieldname: "preview",
-					options: `<p>${__(
-						"Look directly at the camera and click Capture. This reference is used to verify your identity on every check-in/check-out."
-					)}</p>`,
+					options: `
+						<p>${__(
+							"Look directly at the camera and click Capture. This reference is used to verify your identity on every check-in/check-out."
+						)}</p>
+						<p class="text-muted small">
+							${__("Prefer not to use the camera?")}
+							<a href="#" id="ak-enroll-upload-link">${__("Upload a photo instead")}</a>
+						</p>
+						<input type="file" id="ak-enroll-file-input" accept="image/*" style="display:none;">
+					`,
 				},
 			],
 			primary_action_label: __("Capture & Save"),
 			primary_action: async () => {
-				const $btn = dialog.get_primary_btn().prop("disabled", true).text(__("Detecting..."));
-				try {
-					const detection = await laundry_cloud.face_capture.detectFace(this.$video.get(0));
-					if (!detection) {
-						frappe.show_alert({ message: __("No face detected, try again"), indicator: "orange" });
-						return;
-					}
-					const image = laundry_cloud.face_capture.captureSnapshot(this.$video.get(0));
-					frappe.call({
-						method: "laundry_cloud.attendance.api.enroll_face",
-						args: {
-							descriptor: JSON.stringify(Array.from(detection.descriptor)),
-							image: image,
-						},
-						freeze: true,
-						freeze_message: __("Saving face profile..."),
-						callback: () => {
-							frappe.show_alert({ message: __("Face enrolled successfully"), indicator: "green" });
-							dialog.hide();
-							this.load_kiosk_context();
-						},
-					});
-				} catch (err) {
-					frappe.msgprint({
-						title: __("Enrollment failed"),
-						message: err.message || String(err),
-						indicator: "red",
-					});
-				} finally {
-					$btn.prop("disabled", false).text(__("Capture & Save"));
-				}
+				await this.enroll_self_from_media(dialog, this.$video.get(0), () =>
+					laundry_cloud.face_capture.captureSnapshot(this.$video.get(0))
+				);
 			},
 		});
+
+		dialog.$wrapper.find("#ak-enroll-upload-link").on("click", (e) => {
+			e.preventDefault();
+			dialog.$wrapper.find("#ak-enroll-file-input").trigger("click");
+		});
+		dialog.$wrapper.find("#ak-enroll-file-input").on("change", async (e) => {
+			const file = e.target.files[0];
+			e.target.value = "";
+			if (!file) return;
+			if (!file.type.startsWith("image/")) {
+				frappe.msgprint(__("Please choose an image file."));
+				return;
+			}
+			try {
+				const dataUrl = await laundry_cloud.face_capture.readFileAsDataUrl(file);
+				const img = await laundry_cloud.face_capture.loadImage(dataUrl);
+				await this.enroll_self_from_media(dialog, img, () => dataUrl);
+			} catch (err) {
+				frappe.msgprint({
+					title: __("Could not use that photo"),
+					message: err.message || String(err),
+					indicator: "red",
+				});
+			}
+		});
+
 		dialog.show();
+	}
+
+	async enroll_self_from_media(dialog, mediaEl, get_image_data_url) {
+		const $btn = dialog.get_primary_btn().prop("disabled", true).text(__("Detecting..."));
+		try {
+			const detection = await laundry_cloud.face_capture.detectFace(mediaEl);
+			if (!detection) {
+				frappe.show_alert({ message: __("No face detected, try again"), indicator: "orange" });
+				return;
+			}
+			const image = get_image_data_url();
+			await frappe.call({
+				method: "laundry_cloud.attendance.api.enroll_face",
+				args: {
+					descriptor: JSON.stringify(Array.from(detection.descriptor)),
+					image: image,
+				},
+				freeze: true,
+				freeze_message: __("Saving face profile..."),
+			});
+			frappe.show_alert({ message: __("Face enrolled successfully"), indicator: "green" });
+			dialog.hide();
+			this.load_kiosk_context();
+		} catch (err) {
+			frappe.msgprint({
+				title: __("Enrollment failed"),
+				message: err.message || String(err),
+				indicator: "red",
+			});
+		} finally {
+			$btn.prop("disabled", false).text(__("Capture & Save"));
+		}
 	}
 }
