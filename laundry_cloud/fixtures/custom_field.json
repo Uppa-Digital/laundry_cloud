@@ -1,0 +1,24 @@
+[
+	{
+		"doctype": "Custom Field",
+		"name": "User-whatsapp_notification_tab",
+		"dt": "User",
+		"fieldname": "whatsapp_notification_tab",
+		"fieldtype": "Tab Break",
+		"label": "WhatsApp Notifications",
+		"insert_after": "bio",
+		"idx": 0
+	},
+	{
+		"doctype": "Custom Field",
+		"name": "User-enable_whatsapp_notifications",
+		"dt": "User",
+		"fieldname": "enable_whatsapp_notifications",
+		"fieldtype": "Check",
+		"label": "Enable WhatsApp Notifications",
+		"insert_after": "whatsapp_notification_tab",
+		"default": "0",
+		"description": "Get a WhatsApp message whenever you are assigned a task, mentioned, or have pending actions waiting on you. Requires a Mobile No above and WhatsApp Settings to be configured by an administrator.",
+		"idx": 0
+	}
+]

@@ -1,0 +1,18 @@
+[project]
+name = "laundry_cloud"
+authors = [
+    { name = "Laundry Cloud", email = "okhaweremike@gmail.com" }
+]
+description = "A comprehensive laundry management app built on Frappe Framework, with WhatsApp action notifications."
+requires-python = ">=3.10"
+readme = "README.md"
+dynamic = ["version"]
+dependencies = [
+    "requests~=2.32",
+]
+
+[build-system]
+requires = ["flit_core >=3.4,<4"]
+build-backend = "flit_core.buildapi"
+
+[tool.bench.dev-dependencies]
