@@ -5,12 +5,19 @@ const FACE_DETECT_OPTIONS_SCORE_THRESHOLD = 0.5;
 frappe.pages["attendance-kiosk"].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({
 		parent: wrapper,
-		title: "Attendance Kiosk",
+		title: "My Attendance",
 		single_column: true,
 	});
 
 	new AttendanceKiosk(page);
 };
+
+// This is the personal, self-service page: you sign in as yourself and
+// check yourself in/out (1:1 face verification against your own enrolled
+// profile). It's also where you enroll your face in the first place.
+// For a shared device mounted at a physical location where any staff
+// member can walk up and check in/out (1:N face identification, no
+// per-person login), see the installable kiosk app at /kiosk.
 
 class AttendanceKiosk {
 	constructor(page) {
@@ -43,8 +50,11 @@ class AttendanceKiosk {
 								<div>Location: <span id="ak-status-geo">waiting...</span></div>
 							</div>
 							<div class="ak-actions" style="margin-top: 20px;">
-								<button class="btn btn-primary btn-lg" id="ak-btn-mark" disabled style="min-width: 200px;">
+								<button class="btn btn-success" id="ak-btn-in" disabled style="min-width: 140px;">
 									Check In
+								</button>
+								<button class="btn btn-danger" id="ak-btn-out" disabled style="min-width: 140px; margin-left: 10px;">
+									Check Out
 								</button>
 								<button class="btn btn-default" id="ak-btn-enroll" style="margin-left: 10px;">
 									Enroll My Face
@@ -63,11 +73,13 @@ class AttendanceKiosk {
 		this.$status_camera = this.page.main.find("#ak-status-camera");
 		this.$status_model = this.page.main.find("#ak-status-model");
 		this.$status_geo = this.page.main.find("#ak-status-geo");
-		this.$btn_mark = this.page.main.find("#ak-btn-mark");
+		this.$btn_in = this.page.main.find("#ak-btn-in");
+		this.$btn_out = this.page.main.find("#ak-btn-out");
 		this.$btn_enroll = this.page.main.find("#ak-btn-enroll");
 		this.$result = this.page.main.find("#ak-result");
 
-		this.$btn_mark.on("click", () => this.handle_mark_attendance());
+		this.$btn_in.on("click", () => this.handle_mark_attendance("IN"));
+		this.$btn_out.on("click", () => this.handle_mark_attendance("OUT"));
 		this.$btn_enroll.on("click", () => this.open_enroll_dialog());
 	}
 
@@ -84,9 +96,12 @@ class AttendanceKiosk {
 				if (!r.message) return;
 				this.context = r.message;
 				this.$employee_name.text(this.context.employee_name);
-				this.$btn_mark.text(
-					this.context.next_log_type === "OUT" ? "Check Out" : "Check In"
-				);
+				if (this.context.last_log) {
+					this.$status_geo.attr(
+						"title",
+						`Last recorded: ${this.context.last_log.log_type} at ${this.context.last_log.time}`
+					);
+				}
 				if (!this.context.face_enrolled) {
 					this.$result.html(
 						`<div class="alert alert-warning">You have not enrolled your face yet. Click "Enroll My Face" first.</div>`
@@ -146,7 +161,8 @@ class AttendanceKiosk {
 
 	maybe_enable_button() {
 		if (this.stream && this.models_loaded) {
-			this.$btn_mark.prop("disabled", false);
+			this.$btn_in.prop("disabled", false);
+			this.$btn_out.prop("disabled", false);
 		}
 	}
 
@@ -193,8 +209,9 @@ class AttendanceKiosk {
 		return canvas.toDataURL("image/jpeg", 0.85);
 	}
 
-	async handle_mark_attendance() {
-		this.$btn_mark.prop("disabled", true);
+	async handle_mark_attendance(log_type) {
+		this.$btn_in.prop("disabled", true);
+		this.$btn_out.prop("disabled", true);
 		this.$result.empty();
 
 		try {
@@ -217,6 +234,7 @@ class AttendanceKiosk {
 				args: {
 					latitude: coords.latitude,
 					longitude: coords.longitude,
+					log_type: log_type,
 					descriptor: JSON.stringify(Array.from(detection.descriptor)),
 					image: image,
 				},
@@ -235,7 +253,8 @@ class AttendanceKiosk {
 				indicator: "red",
 			});
 		} finally {
-			this.$btn_mark.prop("disabled", false);
+			this.$btn_in.prop("disabled", false);
+			this.$btn_out.prop("disabled", false);
 		}
 	}
 

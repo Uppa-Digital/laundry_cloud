@@ -1,0 +1,39 @@
+{
+	"name": "Laundry Cloud Attendance Kiosk",
+	"short_name": "Attendance",
+	"description": "Staff check-in / check-out kiosk with facial recognition and geolocation.",
+	"start_url": "/kiosk",
+	"scope": "/kiosk",
+	"id": "/kiosk",
+	"display": "standalone",
+	"display_override": ["standalone", "fullscreen"],
+	"orientation": "any",
+	"background_color": "#f4f6f8",
+	"theme_color": "#0d7377",
+	"icons": [
+		{
+			"src": "/assets/laundry_cloud/images/icon-192.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/assets/laundry_cloud/images/icon-192.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "maskable"
+		},
+		{
+			"src": "/assets/laundry_cloud/images/icon-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/assets/laundry_cloud/images/icon-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "maskable"
+		}
+	]
+}

@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"id\":\"attendance-header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Attendance</b></span>\",\"col\":12}},{\"id\":\"attendance-kiosk-shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Attendance Kiosk\",\"col\":3}},{\"id\":\"attendance-checkin-shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Attendance Checkin\",\"col\":3}},{\"id\":\"attendance-summary-shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Attendance Summary\",\"col\":3}},{\"id\":\"attendance-setup-header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Setup</b></span>\",\"col\":12}},{\"id\":\"attendance-office-location-shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Office Location\",\"col\":3}},{\"id\":\"attendance-face-profile-shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Employee Face Profile\",\"col\":3}},{\"id\":\"attendance-settings-shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Attendance Settings\",\"col\":3}}]",
+ "content": "[{\"id\":\"attendance-header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Attendance</b></span>\",\"col\":12}},{\"id\":\"attendance-kiosk-app-shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Open Kiosk App\",\"col\":3}},{\"id\":\"attendance-my-attendance-shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"My Attendance (Self Check-in)\",\"col\":3}},{\"id\":\"attendance-checkin-shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Attendance Checkin\",\"col\":3}},{\"id\":\"attendance-summary-shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Attendance Summary\",\"col\":3}},{\"id\":\"attendance-setup-header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Setup</b></span>\",\"col\":12}},{\"id\":\"attendance-office-location-shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Office Location\",\"col\":3}},{\"id\":\"attendance-kiosk-device-shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Kiosk Device\",\"col\":3}},{\"id\":\"attendance-face-profile-shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Employee Face Profile\",\"col\":3}},{\"id\":\"attendance-settings-shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Attendance Settings\",\"col\":3}},{\"id\":\"attendance-security-header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Security</b></span>\",\"col\":12}},{\"id\":\"attendance-unrecognized-shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Kiosk Unrecognized Attempt\",\"col\":3}}]",
  "creation": "2026-09-04 00:00:00.000000",
  "docstatus": 0,
  "doctype": "Workspace",
@@ -23,9 +23,16 @@
  "sequence_id": 1.0,
  "shortcuts": [
   {
+   "color": "Green",
+   "doc_view": "",
+   "label": "Open Kiosk App",
+   "link_to": "/kiosk",
+   "type": "URL"
+  },
+  {
    "color": "Blue",
    "doc_view": "",
-   "label": "Attendance Kiosk",
+   "label": "My Attendance (Self Check-in)",
    "link_to": "attendance-kiosk",
    "type": "Page"
   },
@@ -53,6 +60,13 @@
   {
    "color": "Grey",
    "doc_view": "List",
+   "label": "Kiosk Device",
+   "link_to": "Kiosk Device",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
    "label": "Employee Face Profile",
    "link_to": "Employee Face Profile",
    "type": "DocType"
@@ -62,6 +76,13 @@
    "doc_view": "",
    "label": "Attendance Settings",
    "link_to": "Attendance Settings",
+   "type": "DocType"
+  },
+  {
+   "color": "Red",
+   "doc_view": "List",
+   "label": "Kiosk Unrecognized Attempt",
+   "link_to": "Kiosk Unrecognized Attempt",
    "type": "DocType"
   }
  ],

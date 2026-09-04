@@ -27,11 +27,25 @@ def get_settings():
 	return frappe.get_cached_doc("Attendance Settings")
 
 
+def get_last_log(employee, before=None):
+	filters = {"employee": employee}
+	if before:
+		filters["time"] = ["<", before]
+	logs = frappe.get_all(
+		"Attendance Checkin",
+		filters=filters,
+		fields=["log_type", "time"],
+		order_by="time desc",
+		limit=1,
+	)
+	return logs[0] if logs else None
+
+
 @frappe.whitelist()
 def get_kiosk_context():
-	"""Everything the check-in/check-out page needs to render for the
-	current logged-in user: their Employee record, enrollment status and
-	what the next expected action (IN/OUT) is."""
+	"""Everything the personal (self-service, logged in as yourself) kiosk
+	page needs to render for the current user: their Employee record,
+	enrollment status, and their last recorded log."""
 	employee = get_employee_for_user()
 	if not employee:
 		frappe.throw(_("No active Employee record is linked to your user account."))
@@ -42,23 +56,13 @@ def get_kiosk_context():
 		)
 	)
 
-	last_log = frappe.get_all(
-		"Attendance Checkin",
-		filters={"employee": employee.name},
-		fields=["log_type", "time"],
-		order_by="time desc",
-		limit=1,
-	)
-	next_log_type = "IN"
-	if last_log and last_log[0].log_type == "IN":
-		next_log_type = "OUT"
+	last_log = get_last_log(employee.name)
 
 	return {
 		"employee": employee.name,
 		"employee_name": employee.employee_name,
 		"face_enrolled": face_enrolled,
-		"next_log_type": next_log_type,
-		"last_log": last_log[0] if last_log else None,
+		"last_log": last_log,
 	}
 
 
@@ -66,7 +70,9 @@ def get_kiosk_context():
 def enroll_face(descriptor, image, employee=None):
 	"""Store (or replace) the reference face descriptor for an employee.
 	Employees may enroll themselves; enrolling someone else requires a
-	manager role."""
+	manager role. This always runs under a real, individually-authenticated
+	login — never from a shared kiosk session — since it establishes the
+	ground truth identity used for later 1:N recognition."""
 	descriptor = frappe.parse_json(descriptor)
 	utils.validate_descriptor(descriptor)
 
@@ -104,31 +110,42 @@ def enroll_face(descriptor, image, employee=None):
 	return {"status": "ok", "employee": target_employee}
 
 
-@frappe.whitelist()
-def mark_attendance(latitude, longitude, descriptor=None, image=None, log_type=None):
-	"""Verify geolocation + face match, then record a check-in/check-out
-	event. Called from the Attendance Kiosk page."""
-	employee = get_employee_for_user()
-	if not employee:
-		frappe.throw(_("No active Employee record is linked to your user account."))
+def build_duplicate_remark(employee, log_type, time):
+	last_log = get_last_log(employee, before=time)
+	if not last_log:
+		if log_type == "OUT":
+			return "Note: no earlier Check In found for this employee today or before."
+		return None
+	if last_log.log_type == log_type:
+		return f"Note: the previous recorded action for this employee was also {log_type}."
+	return None
 
+
+def create_attendance_checkin(
+	*,
+	employee,
+	log_type,
+	latitude,
+	longitude,
+	face_match_status,
+	face_match_score,
+	kiosk_device=None,
+	device_info=None,
+):
 	settings = get_settings()
-	latitude = float(latitude)
-	longitude = float(longitude)
-	descriptor = frappe.parse_json(descriptor) if descriptor else None
+	time = now_datetime()
 
-	if not log_type:
-		context = get_kiosk_context()
-		log_type = context["next_log_type"]
-	if log_type not in ("IN", "OUT"):
-		frappe.throw(_("Invalid log type."))
-
-	# --- Geofence check -------------------------------------------------
 	location_status = "Unknown"
 	office_location = None
 	distance = None
+	pinned_location = None
 
-	nearest, nearest_distance = utils.find_nearest_office_location(latitude, longitude)
+	if kiosk_device:
+		pinned_location = frappe.db.get_value("Kiosk Device", kiosk_device, "office_location")
+
+	nearest, nearest_distance = utils.resolve_office_and_distance(
+		latitude, longitude, pinned_location=pinned_location
+	)
 	if nearest:
 		office_location = nearest.name
 		distance = nearest_distance
@@ -146,7 +163,59 @@ def mark_attendance(latitude, longitude, descriptor=None, image=None, log_type=N
 			)
 		)
 
-	# --- Face match check -------------------------------------------------
+	if (
+		settings.enforce_face_match
+		and settings.block_checkin_on_face_mismatch
+		and face_match_status in ("Not Verified", "No Profile", "No Face Detected")
+	):
+		frappe.throw(_("Face verification failed ({0}).").format(face_match_status))
+
+	checkin = frappe.new_doc("Attendance Checkin")
+	checkin.employee = employee
+	checkin.log_type = log_type
+	checkin.time = time
+	checkin.latitude = latitude
+	checkin.longitude = longitude
+	checkin.office_location = office_location
+	checkin.distance_from_office = distance
+	checkin.location_status = location_status
+	checkin.face_match_score = face_match_score
+	checkin.face_match_status = face_match_status
+	checkin.kiosk_device = kiosk_device
+	checkin.device_info = device_info
+	checkin.ip_address = getattr(frappe.local, "request_ip", None)
+	checkin.remarks = build_duplicate_remark(employee, log_type, time)
+	checkin.insert(ignore_permissions=True)
+
+	synced_checkin = None
+	if settings.sync_to_employee_checkin:
+		synced_checkin = sync_to_employee_checkin(checkin)
+
+	return checkin, {
+		"location_status": location_status,
+		"office_location": office_location,
+		"distance_from_office": distance,
+		"employee_checkin": synced_checkin,
+	}
+
+
+@frappe.whitelist()
+def mark_attendance(latitude, longitude, log_type, descriptor=None, image=None):
+	"""Self-service check-in/out: the logged-in user marks attendance for
+	themselves (1:1 face verification against their own enrolled profile).
+	Used by the personal Attendance Kiosk desk page."""
+	employee = get_employee_for_user()
+	if not employee:
+		frappe.throw(_("No active Employee record is linked to your user account."))
+
+	if log_type not in ("IN", "OUT"):
+		frappe.throw(_("Invalid log type."))
+
+	latitude = float(latitude)
+	longitude = float(longitude)
+	descriptor = frappe.parse_json(descriptor) if descriptor else None
+	settings = get_settings()
+
 	face_match_status = "No Profile"
 	face_match_score = None
 
@@ -166,28 +235,15 @@ def mark_attendance(latitude, longitude, descriptor=None, image=None, log_type=N
 				"Verified" if face_match_score <= settings.face_match_threshold else "Not Verified"
 			)
 
-	if (
-		settings.enforce_face_match
-		and settings.block_checkin_on_face_mismatch
-		and face_match_status in ("Not Verified", "No Profile", "No Face Detected")
-	):
-		frappe.throw(_("Face verification failed ({0}).").format(face_match_status))
-
-	# --- Create the record -------------------------------------------------
-	checkin = frappe.new_doc("Attendance Checkin")
-	checkin.employee = employee.name
-	checkin.log_type = log_type
-	checkin.time = now_datetime()
-	checkin.latitude = latitude
-	checkin.longitude = longitude
-	checkin.office_location = office_location
-	checkin.distance_from_office = distance
-	checkin.location_status = location_status
-	checkin.face_match_score = face_match_score
-	checkin.face_match_status = face_match_status
-	checkin.device_info = frappe.request.headers.get("User-Agent") if frappe.request else None
-	checkin.ip_address = getattr(frappe.local, "request_ip", None)
-	checkin.insert(ignore_permissions=True)
+	checkin, result = create_attendance_checkin(
+		employee=employee.name,
+		log_type=log_type,
+		latitude=latitude,
+		longitude=longitude,
+		face_match_status=face_match_status,
+		face_match_score=face_match_score,
+		device_info=frappe.request.headers.get("User-Agent") if frappe.request else None,
+	)
 
 	if image:
 		file_url = utils.save_base64_image(
@@ -195,21 +251,14 @@ def mark_attendance(latitude, longitude, descriptor=None, image=None, log_type=N
 		)
 		checkin.db_set("selfie_image", file_url, update_modified=False)
 
-	synced_checkin = None
-	if settings.sync_to_employee_checkin:
-		synced_checkin = sync_to_employee_checkin(checkin)
-
 	return {
 		"status": "ok",
 		"name": checkin.name,
 		"log_type": log_type,
 		"time": checkin.time,
-		"location_status": location_status,
-		"office_location": office_location,
-		"distance_from_office": distance,
 		"face_match_status": face_match_status,
 		"face_match_score": face_match_score,
-		"employee_checkin": synced_checkin,
+		**result,
 	}
 
 

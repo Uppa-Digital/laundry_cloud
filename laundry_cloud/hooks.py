@@ -30,6 +30,6 @@ after_install = "laundry_cloud.setup.install.after_install"
 fixtures = [
 	{
 		"doctype": "Role",
-		"filters": [["name", "in", ["Attendance Manager"]]],
+		"filters": [["name", "in", ["Attendance Manager", "Attendance Kiosk"]]],
 	}
 ]

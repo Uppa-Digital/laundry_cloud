@@ -1,0 +1,118 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "hash",
+ "creation": "2026-09-04 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "kiosk_device",
+  "time",
+  "attempted_log_type",
+  "column_break_1",
+  "closest_employee",
+  "closest_distance",
+  "section_break_1",
+  "image",
+  "latitude",
+  "longitude"
+ ],
+ "fields": [
+  {
+   "fieldname": "kiosk_device",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Kiosk Device",
+   "options": "Kiosk Device"
+  },
+  {
+   "fieldname": "time",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Time",
+   "reqd": 1
+  },
+  {
+   "fieldname": "attempted_log_type",
+   "fieldtype": "Select",
+   "label": "Attempted Action",
+   "options": "IN\nOUT"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "The closest enrolled face on record, shown for admin review only. This match was below the confidence threshold, so no attendance was recorded against this employee.",
+   "fieldname": "closest_employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Closest Enrolled Match",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "closest_distance",
+   "fieldtype": "Float",
+   "label": "Closest Match Distance",
+   "precision": "4"
+  },
+  {
+   "fieldname": "section_break_1",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "image",
+   "fieldtype": "Attach Image",
+   "label": "Captured Image"
+  },
+  {
+   "fieldname": "latitude",
+   "fieldtype": "Float",
+   "label": "Latitude",
+   "precision": "8"
+  },
+  {
+   "fieldname": "longitude",
+   "fieldtype": "Float",
+   "label": "Longitude",
+   "precision": "8"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-09-04 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Attendance",
+ "name": "Kiosk Unrecognized Attempt",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Attendance Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "time",
+ "sort_order": "DESC",
+ "states": []
+}

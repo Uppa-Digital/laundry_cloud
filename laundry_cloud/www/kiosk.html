@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+	<title>Attendance Kiosk</title>
+
+	<meta name="csrf-token" content="{{ csrf_token }}">
+	<meta name="theme-color" content="#0d7377">
+	<meta name="mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+	<meta name="apple-mobile-web-app-title" content="Attendance">
+
+	<link rel="manifest" href="/manifest.json">
+	<link rel="icon" href="/assets/laundry_cloud/images/icon-192.png">
+	<link rel="apple-touch-icon" href="/assets/laundry_cloud/images/icon-192.png">
+	<link rel="stylesheet" href="/assets/laundry_cloud/css/kiosk.css">
+</head>
+<body>
+	<div id="kiosk-app">
+		<div class="kiosk-boot">Loading…</div>
+	</div>
+
+	<script>
+		window.KIOSK_IS_LOGGED_IN = {{ 1 if is_logged_in else 0 }};
+	</script>
+	<script src="/assets/laundry_cloud/js/kiosk.js"></script>
+</body>
+</html>

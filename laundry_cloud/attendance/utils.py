@@ -45,6 +45,25 @@ def find_nearest_office_location(latitude, longitude):
 	return nearest, nearest_distance
 
 
+def resolve_office_and_distance(latitude, longitude, pinned_location=None):
+	"""Like find_nearest_office_location, but prefers a specific (pinned)
+	Office Location when given — e.g. the site a Kiosk Device is installed
+	at — falling back to the nearest active one if the pin is missing or
+	inactive."""
+	if pinned_location:
+		loc = frappe.db.get_value(
+			"Office Location",
+			{"name": pinned_location, "is_active": 1},
+			["name", "latitude", "longitude", "allowed_radius_meters"],
+			as_dict=True,
+		)
+		if loc:
+			distance = haversine_distance_meters(latitude, longitude, loc.latitude, loc.longitude)
+			return loc, distance
+
+	return find_nearest_office_location(latitude, longitude)
+
+
 def euclidean_distance(descriptor_a, descriptor_b):
 	if len(descriptor_a) != len(descriptor_b):
 		frappe.throw("Face descriptor length mismatch.")

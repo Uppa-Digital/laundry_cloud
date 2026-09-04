@@ -3,17 +3,18 @@ import frappe
 
 def after_install():
 	"""Runs once, right after the app is installed on a site."""
-	create_attendance_manager_role()
+	create_role("Attendance Manager", desk_access=1)
+	create_role("Attendance Kiosk", desk_access=0)
 	create_default_attendance_settings()
 
 
-def create_attendance_manager_role():
-	if frappe.db.exists("Role", "Attendance Manager"):
+def create_role(role_name, desk_access=0):
+	if frappe.db.exists("Role", role_name):
 		return
 
 	role = frappe.new_doc("Role")
-	role.role_name = "Attendance Manager"
-	role.desk_access = 1
+	role.role_name = role_name
+	role.desk_access = desk_access
 	role.insert(ignore_permissions=True)
 
 

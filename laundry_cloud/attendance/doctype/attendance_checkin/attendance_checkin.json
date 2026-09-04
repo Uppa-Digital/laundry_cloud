@@ -12,6 +12,7 @@
   "log_type",
   "time",
   "column_break_1",
+  "kiosk_device",
   "employee_checkin",
   "attendance",
   "section_break_loc",
@@ -76,6 +77,14 @@
   {
    "fieldname": "column_break_1",
    "fieldtype": "Column Break"
+  },
+  {
+   "description": "The shared kiosk device this event was recorded from, if any (blank for self-service check-ins from a personal login).",
+   "fieldname": "kiosk_device",
+   "fieldtype": "Link",
+   "label": "Kiosk Device",
+   "options": "Kiosk Device",
+   "read_only": 1
   },
   {
    "fieldname": "employee_checkin",
@@ -227,9 +236,8 @@
    "write": 1
   },
   {
-   "if_owner": 1,
    "read": 1,
-   "role": "Employee"
+   "role": "HR Manager"
   }
  ],
  "sort_field": "time",
